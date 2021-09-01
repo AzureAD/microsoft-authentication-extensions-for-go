@@ -1,13 +1,9 @@
 package internal
 
 import (
-	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
-	"runtime"
-
-	"github.com/billgraziano/dpapi"
 )
 
 type cacheAccessor interface {
@@ -35,29 +31,14 @@ func (f *FileAccessor) Read() ([]byte, error) {
 	if err != nil {
 		log.Println(err)
 	}
-	if data != nil && len(data) != 0 && runtime.GOOS == "windows" {
-		data, err = dpapi.DecryptBytes(data)
-		if err != nil {
-			fmt.Println("err from Decrypt: ", err)
-		}
-	}
 	return data, nil
 }
 
 func (f *FileAccessor) Write(data []byte) {
-	if runtime.GOOS == "windows" {
-		data, err := dpapi.EncryptBytes(data)
-		if err != nil {
-			fmt.Println("Error from Encrypt")
-		}
-		err = ioutil.WriteFile(f.cacheFilePath, data, 0600)
-		if err != nil {
-			log.Println(err)
-		}
-	} else {
-		f.WriteAtomic(data)
+	err := ioutil.WriteFile(f.cacheFilePath, data, 0600)
+	if err != nil {
+		log.Println(err)
 	}
-
 }
 
 func (f *FileAccessor) WriteAtomic(data []byte) {
