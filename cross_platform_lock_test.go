@@ -13,7 +13,7 @@ import (
 	"github.com/AzureAD/microsoft-authentication-extensions-for-go/internal"
 )
 
-func spinThreads(noOfThreads int, sleepInterval time.Duration) int {
+func spinThreads(noOfThreads int, sleepInterval time.Duration, t *testing.T) int {
 	cacheFile := "cache.txt"
 	var wg sync.WaitGroup
 	wg.Add(noOfThreads)
@@ -24,7 +24,12 @@ func spinThreads(noOfThreads int, sleepInterval time.Duration) int {
 		}(i)
 	}
 	wg.Wait()
-	return validateResult(cacheFile)
+	t.Cleanup(func() {
+		if err := os.Remove(cacheFile); err != nil {
+			log.Println("Failed to remove cache file", err)
+		}
+	})
+	return validateResult(cacheFile, t)
 }
 
 func acquireLockAndWriteToCache(threadNo int, sleepInterval time.Duration, cacheFile string) {
@@ -48,7 +53,7 @@ func acquireLockAndWriteToCache(threadNo int, sleepInterval time.Duration, cache
 	cacheAccessor.Write(buffer.Bytes())
 }
 
-func validateResult(cacheFile string) int {
+func validateResult(cacheFile string, t *testing.T) int {
 	count := 0
 	var prevProc string = ""
 	var tag string
@@ -67,22 +72,19 @@ func validateResult(cacheFile string) int {
 			proc = split[1]
 			if prevProc != "" {
 				if proc != prevProc {
-					fmt.Println("Process overlap found")
+					t.Fatal("Process overlap found")
 				}
 				if tag != ">" {
-					fmt.Println("Process overlap found 1")
+					t.Fatal("Process overlap found")
 				}
 				prevProc = ""
 
 			} else {
 				if tag != "<" {
-					fmt.Println("Opening bracket not found")
+					t.Fatal("Opening bracket not found")
 				}
 				prevProc = proc
 			}
-		}
-		if err := os.Remove(cacheFile); err != nil {
-			log.Println("Failed to remove cache file", err)
 		}
 	}
 	return count
@@ -90,7 +92,7 @@ func validateResult(cacheFile string) int {
 func TestForNormalWorkload(t *testing.T) {
 	noOfThreads := 4
 	sleepInterval := 100
-	n := spinThreads(noOfThreads, time.Duration(sleepInterval))
+	n := spinThreads(noOfThreads, time.Duration(sleepInterval), t)
 	if n != 4*2 {
 		t.Fatalf("Should not observe starvation")
 	}
@@ -99,7 +101,7 @@ func TestForNormalWorkload(t *testing.T) {
 func TestForHighWorkload(t *testing.T) {
 	noOfThreads := 80
 	sleepInterval := 100
-	n := spinThreads(noOfThreads, time.Duration(sleepInterval))
+	n := spinThreads(noOfThreads, time.Duration(sleepInterval), t)
 	if n > 80*2 {
 		t.Fatalf("Starvation or not, we should not observe garbled payload")
 	}
