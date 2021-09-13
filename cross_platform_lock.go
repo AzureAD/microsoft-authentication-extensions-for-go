@@ -1,7 +1,9 @@
 package main
 
 import (
+	"errors"
 	"fmt"
+	"log"
 	"os"
 	"time"
 
@@ -10,7 +12,7 @@ import (
 
 type CrossPlatLock struct {
 	retryNumber            int
-	retryDelayMilliseconds int
+	retryDelayMilliseconds time.Duration
 
 	lockFile *os.File
 
@@ -20,10 +22,10 @@ type CrossPlatLock struct {
 	locked       bool
 }
 
-func NewLock(lockFileName string, retryNumber int) (CrossPlatLock, error) {
-	lockfile, err := os.Create("cache_trial.json.lockfile")
+func NewLock(lockFileName string, retryNumber int, retryDelayMilliseconds time.Duration) (CrossPlatLock, error) {
+	lockfile, err := os.Create(lockFileName)
 	if err != nil {
-		fmt.Println(err)
+		log.Println("Error creating cache file", err)
 	}
 	return CrossPlatLock{
 		lockfileName: lockFileName,
@@ -34,29 +36,30 @@ func NewLock(lockFileName string, retryNumber int) (CrossPlatLock, error) {
 }
 
 func (c CrossPlatLock) Lock() error {
-
-	err := c.fileLock.Lock()
-	if err != nil {
-		return err
+	for tryCount := 0; tryCount < c.retryNumber; tryCount++ {
+		err := c.fileLock.Lock()
+		if err != nil {
+			time.Sleep(c.retryDelayMilliseconds * time.Millisecond)
+			continue
+		} else {
+			if c.fileLock.Locked() {
+				c.fileLock.Fh.WriteString(fmt.Sprintf("{%d} {%s}", os.Getpid(), os.Args[0]))
+			}
+			c.locked = true
+			return nil
+		}
 	}
-	if c.fileLock.Locked() {
-		c.fileLock.Fh.WriteString("Hello \n")
-	}
-	c.locked = true
-	time.Sleep(10)
-	return nil
+	return errors.New("Failed to acquire lock")
 }
 
 func (c CrossPlatLock) UnLock() error {
 	if c.fileLock != nil {
 		if err := c.fileLock.Unlock(); err != nil {
-			fmt.Println("UnLock ", err.Error())
-			// handle unlock error
+			log.Println("Unlock error", err.Error())
 		}
 		c.lockFile.Close()
-		var err = os.Remove(c.fileLock.Path())
-		if err != nil {
-			fmt.Println(err.Error())
+		if err := os.Remove(c.fileLock.Path()); err != nil {
+			return err
 		}
 		c.locked = false
 	}
