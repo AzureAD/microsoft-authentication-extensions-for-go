@@ -24,7 +24,7 @@ func Test(t *testing.T) {
 		t.Fatalf("should have failed locking: locked: %t, err: %v", locked, err)
 	}
 
-	if newLock.fh != nil {
+	if newLock.Fh != nil {
 		t.Fatal("file handle should have been released and be nil")
 	}
 }

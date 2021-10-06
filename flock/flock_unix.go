@@ -2,6 +2,7 @@
 // Use of this source code is governed by the BSD 3-Clause
 // license that can be found in the LICENSE file.
 
+//go:build !aix && !windows
 // +build !aix,!windows
 
 package flock
@@ -47,14 +48,14 @@ func (f *Flock) lock(locked *bool, flag int) error {
 		return nil
 	}
 
-	if f.fh == nil {
+	if f.Fh == nil {
 		if err := f.setFh(); err != nil {
 			return err
 		}
 		defer f.ensureFhState()
 	}
 
-	if err := syscall.Flock(int(f.fh.Fd()), flag); err != nil {
+	if err := syscall.Flock(int(f.Fh.Fd()), flag); err != nil {
 		shouldRetry, reopenErr := f.reopenFDOnError(err)
 		if reopenErr != nil {
 			return reopenErr
@@ -64,7 +65,7 @@ func (f *Flock) lock(locked *bool, flag int) error {
 			return err
 		}
 
-		if err = syscall.Flock(int(f.fh.Fd()), flag); err != nil {
+		if err = syscall.Flock(int(f.Fh.Fd()), flag); err != nil {
 			return err
 		}
 	}
@@ -89,20 +90,20 @@ func (f *Flock) Unlock() error {
 
 	// if we aren't locked or if the lockfile instance is nil
 	// just return a nil error because we are unlocked
-	if (!f.l && !f.r) || f.fh == nil {
+	if (!f.l && !f.r) || f.Fh == nil {
 		return nil
 	}
 
 	// mark the file as unlocked
-	if err := syscall.Flock(int(f.fh.Fd()), syscall.LOCK_UN); err != nil {
+	if err := syscall.Flock(int(f.Fh.Fd()), syscall.LOCK_UN); err != nil {
 		return err
 	}
 
-	f.fh.Close()
+	f.Fh.Close()
 
 	f.l = false
 	f.r = false
-	f.fh = nil
+	f.Fh = nil
 
 	return nil
 }
@@ -139,7 +140,7 @@ func (f *Flock) try(locked *bool, flag int) (bool, error) {
 		return true, nil
 	}
 
-	if f.fh == nil {
+	if f.Fh == nil {
 		if err := f.setFh(); err != nil {
 			return false, err
 		}
@@ -148,7 +149,7 @@ func (f *Flock) try(locked *bool, flag int) (bool, error) {
 
 	var retried bool
 retry:
-	err := syscall.Flock(int(f.fh.Fd()), flag|syscall.LOCK_NB)
+	err := syscall.Flock(int(f.Fh.Fd()), flag|syscall.LOCK_NB)
 
 	switch err {
 	case syscall.EWOULDBLOCK:
@@ -177,18 +178,18 @@ func (f *Flock) reopenFDOnError(err error) (bool, error) {
 	if err != syscall.EIO && err != syscall.EBADF {
 		return false, nil
 	}
-	if st, err := f.fh.Stat(); err == nil {
+	if st, err := f.Fh.Stat(); err == nil {
 		// if the file is able to be read and written
 		if st.Mode()&0600 == 0600 {
-			f.fh.Close()
-			f.fh = nil
+			f.Fh.Close()
+			f.Fh = nil
 
 			// reopen in read-write mode and set the filehandle
 			fh, err := os.OpenFile(f.path, os.O_CREATE|os.O_RDWR, os.FileMode(0600))
 			if err != nil {
 				return false, err
 			}
-			f.fh = fh
+			f.Fh = fh
 			return true, nil
 		}
 	}
