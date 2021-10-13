@@ -2,7 +2,6 @@ package internal
 
 import (
 	"io/ioutil"
-	"log"
 	"os"
 )
 
@@ -24,26 +23,26 @@ func (f *FileAccessor) Read() ([]byte, error) {
 	var data []byte
 	file, err := os.Open(f.cacheFilePath)
 	if err != nil {
-		log.Println(err)
+		return nil, err
 	}
 	defer file.Close()
 	data, err = ioutil.ReadAll(file)
 	if err != nil {
-		log.Println(err)
+		return nil, err
 	}
 	return data, nil
 }
 
-func (f *FileAccessor) Write(data []byte) {
+func (f *FileAccessor) Write(data []byte) error {
 	err := ioutil.WriteFile(f.cacheFilePath, data, 0600)
 	if err != nil {
-		log.Println(err)
+		return err
 	}
+	return nil
 }
 
 func (f *FileAccessor) WriteAtomic(data []byte) {
 	// Not implemented yet
-	return
 }
 
 func (f *FileAccessor) Delete() {

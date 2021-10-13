@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"time"
 
@@ -25,7 +24,7 @@ type CrossPlatLock struct {
 func NewLock(lockFileName string, retryNumber int, retryDelayMilliseconds time.Duration) (CrossPlatLock, error) {
 	lockfile, err := os.Create(lockFileName)
 	if err != nil {
-		log.Println("Error creating cache file", err)
+		return CrossPlatLock{}, err
 	}
 	return CrossPlatLock{
 		lockfileName: lockFileName,
@@ -55,7 +54,7 @@ func (c CrossPlatLock) Lock() error {
 func (c CrossPlatLock) UnLock() error {
 	if c.fileLock != nil {
 		if err := c.fileLock.Unlock(); err != nil {
-			log.Println("Unlock error", err.Error())
+			return err
 		}
 		c.lockFile.Close()
 		if err := os.Remove(c.fileLock.Path()); err != nil {

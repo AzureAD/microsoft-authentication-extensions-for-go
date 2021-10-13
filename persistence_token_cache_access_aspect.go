@@ -1,3 +1,6 @@
+//go:build windows
+// +build windows
+
 package main
 
 import (
@@ -19,7 +22,7 @@ func NewFileCache(file string) *FileTokenCache {
 	os.Create(file)
 	lock, err := NewLock(file+".lock", 60, 100)
 	if err != nil {
-		log.Print(err)
+		return &FileTokenCache{}
 	}
 	return &FileTokenCache{
 		lock:         lock,
@@ -28,32 +31,29 @@ func NewFileCache(file string) *FileTokenCache {
 	}
 }
 
-func (t *FileTokenCache) Replace(cache cache.Unmarshaler, key string) {
+func (t *FileTokenCache) Replace(cache cache.Unmarshaler, key string) error {
 	if err := t.lock.Lock(); err != nil {
-		log.Println("Couldn't acquire lock", err.Error())
-		return
+		return err
 	}
 	defer t.lock.UnLock()
 	data, err := t.fileAccessor.Read()
-
 	if err != nil {
-		log.Println(err)
+		return err
 	}
 	err = cache.Unmarshal(data)
 	if err != nil {
-		log.Println(err)
+		return err
 	}
 }
 
-func (t *FileTokenCache) Export(cache cache.Marshaler, key string) {
+func (t *FileTokenCache) Export(cache cache.Marshaler, key string) error {
 	if err := t.lock.Lock(); err != nil {
-		log.Println("Couldn't acquire lock", err.Error())
-		return
+		return err
 	}
 	defer t.lock.UnLock()
 	data, err := cache.Marshal()
 	if err != nil {
-		log.Println(err)
+		return err
 	}
 	t.fileAccessor.Write(data)
 }
@@ -68,7 +68,7 @@ type WindowsTokenCache struct {
 func NewWindowsCache(file string) *WindowsTokenCache {
 	lock, err := NewLock(file, 60, 100)
 	if err != nil {
-		log.Print(err)
+		return &WindowsTokenCache{}
 	}
 	return &WindowsTokenCache{
 		lock:            lock,
@@ -76,26 +76,24 @@ func NewWindowsCache(file string) *WindowsTokenCache {
 	}
 }
 
-func (t *WindowsTokenCache) Replace(cache cache.Unmarshaler, key string) {
+func (t *WindowsTokenCache) Replace(cache cache.Unmarshaler, key string) error {
 	t.lock.Lock()
-
 	data, err := t.windowsAccessor.Read()
-
 	if err != nil {
-		log.Println(err)
+		return err
 	}
 	err = cache.Unmarshal(data)
 	if err != nil {
-		log.Println(err)
+		return err
 	}
 	t.lock.UnLock()
 }
 
-func (t *WindowsTokenCache) Export(cache cache.Marshaler, key string) {
+func (t *WindowsTokenCache) Export(cache cache.Marshaler, key string) error {
 	t.lock.Lock()
 	data, err := cache.Marshal()
 	if err != nil {
-		log.Println(err)
+		return err
 	}
 	t.windowsAccessor.Write(data)
 	t.lock.UnLock()
