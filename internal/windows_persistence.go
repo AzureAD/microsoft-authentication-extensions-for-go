@@ -4,9 +4,7 @@
 package internal
 
 import (
-	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"runtime"
 
@@ -25,17 +23,17 @@ func (w *WindowsAccessor) Read() ([]byte, error) {
 	var data []byte
 	file, err := os.Open(w.cacheFilePath)
 	if err != nil {
-		nil, err
+		return nil, err
 	}
 	defer file.Close()
 	data, err = ioutil.ReadAll(file)
 	if err != nil {
-		nil, err
+		return nil, err
 	}
 	if data != nil && len(data) != 0 && runtime.GOOS == "windows" {
 		data, err = dpapi.DecryptBytes(data)
 		if err != nil {
-			nil, err
+			return nil, err
 		}
 	}
 	return data, nil
@@ -50,6 +48,7 @@ func (w *WindowsAccessor) Write(data []byte) error {
 	if err != nil {
 		return err
 	}
+	return nil
 }
 
 func (w *WindowsAccessor) WriteAtomic(data []byte) {

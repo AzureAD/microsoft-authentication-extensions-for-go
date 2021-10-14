@@ -6,7 +6,7 @@ package main
 import (
 	"log"
 	"os"
-	"path/filepath"
+	"time"
 
 	"github.com/AzureAD/microsoft-authentication-extensions-for-go/internal"
 	"github.com/AzureAD/microsoft-authentication-library-for-go/apps/cache"
@@ -15,7 +15,7 @@ import (
 type FileTokenCache struct {
 	lock                               CrossPlatLock
 	filename                           string
-	lastSeenCacheFileModifiedTimestamp int
+	lastSeenCacheFileModifiedTimestamp time.Time
 	fileAccessor                       internal.FileAccessor
 }
 
@@ -33,49 +33,49 @@ func NewFileCache(file string) *FileTokenCache {
 	}
 }
 
-func (t *FileTokenCache) Replace(cache cache.Unmarshaler, key string) error {
+func (t *FileTokenCache) Replace(cache cache.Unmarshaler, key string) {
 	info, err := os.Stat(t.filename)
 	if err != nil {
-		return err
+		log.Println(err)
 	}
 	currentCacheFileModifiedTime := info.ModTime()
 	if currentCacheFileModifiedTime != t.lastSeenCacheFileModifiedTimestamp {
 		if err := t.lock.Lock(); err != nil {
-			return err
+			log.Println(err)
 		}
 		defer t.lock.UnLock()
 		data, err := t.fileAccessor.Read()
 		if err != nil {
-			return err
+			log.Println(err)
 		}
 		err = cache.Unmarshal(data)
 		if err != nil {
-			return err
+			log.Println(err)
 		}
 	}
 }
 
-func (t *FileTokenCache) Export(cache cache.Marshaler, key string) error {
+func (t *FileTokenCache) Export(cache cache.Marshaler, key string) {
 	if err := t.lock.Lock(); err != nil {
-		return err
+		log.Println(err)
 	}
 	defer t.lock.UnLock()
 	data, err := cache.Marshal()
 	if err != nil {
-		return err
+		log.Println(err)
 	}
 	t.fileAccessor.Write(data)
 	info, err := os.Stat(t.filename)
 	if err != nil {
-		return err
+		log.Println(err)
 	}
-	t.lastSeenCacheFileModifiedTimestamp := info.ModTime()
+	t.lastSeenCacheFileModifiedTimestamp = info.ModTime()
 }
 
 type WindowsTokenCache struct {
 	lock                               CrossPlatLock
 	filename                           string
-	lastSeenCacheFileModifiedTimestamp int
+	lastSeenCacheFileModifiedTimestamp time.Time
 	windowsAccessor                    internal.WindowsAccessor
 }
 
@@ -83,48 +83,48 @@ func NewWindowsCache(file string) *WindowsTokenCache {
 	os.Create(file)
 	lock, err := NewLock(file+".lock", 60, 100)
 	if err != nil {
-		return &WindowsTokenCache
+		return &WindowsTokenCache{}
 	}
 	return &WindowsTokenCache{
-		lock:            lock,
-		filename:        file,
-		windowsAccessor: *internal.NewWindowsAccessor(filepath),
+		lock:                               lock,
+		filename:                           file,
+		windowsAccessor:                    *internal.NewWindowsAccessor(file),
 		lastSeenCacheFileModifiedTimestamp: time.Time{},
 	}
 }
 
-func (t *WindowsTokenCache) Replace(cache cache.Unmarshaler, key string) error {
+func (t *WindowsTokenCache) Replace(cache cache.Unmarshaler, key string) {
 	info, err := os.Stat(t.filename)
 	if err != nil {
-		return err
+		log.Println(err)
 	}
 	currentCacheFileModifiedTime := info.ModTime()
-		if currentCacheFileModifiedTime != t.lastSeenCacheFileModifiedTimestamp {
+	if currentCacheFileModifiedTime != t.lastSeenCacheFileModifiedTimestamp {
 		t.lock.Lock()
 		defer t.lock.UnLock()
 		data, err := t.windowsAccessor.Read()
 		if err != nil {
-			return err
+			log.Println(err)
 		}
 		err = cache.Unmarshal(data)
 		if err != nil {
-			return err
+			log.Println(err)
 		}
 	}
 }
 
-func (t *WindowsTokenCache) Export(cache cache.Marshaler, key string) error {
+func (t *WindowsTokenCache) Export(cache cache.Marshaler, key string) {
 	t.lock.Lock()
 	defer t.lock.UnLock()
 	data, err := cache.Marshal()
 	if err != nil {
-		return err
+		log.Println(err)
 	}
 	t.windowsAccessor.Write(data)
-	
+
 	info, err := os.Stat(t.filename)
 	if err != nil {
-		return err
+		log.Println(err)
 	}
-	t.lastSeenCacheFileModifiedTimestamp := info.ModTime()
+	t.lastSeenCacheFileModifiedTimestamp = info.ModTime()
 }
