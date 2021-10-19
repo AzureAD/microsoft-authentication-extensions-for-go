@@ -1,4 +1,4 @@
-package main
+package lock
 
 import (
 	"bytes"
@@ -35,12 +35,12 @@ func spinThreads(noOfThreads int, sleepInterval time.Duration, t *testing.T) int
 func acquireLockAndWriteToCache(threadNo int, sleepInterval time.Duration, cacheFile string) {
 	cacheAccessor := internal.NewFileAccessor(cacheFile)
 	lockfileName := cacheFile + ".lockfile"
-	lock, err := NewLock(lockfileName, 60, 100)
-	if err := lock.Lock(); err != nil {
+	l, err := New(lockfileName, WithRetries(60), WithRetryDelay(100))
+	if err := l.Lock(); err != nil {
 		log.Println("Couldn't acquire lock", err.Error())
 		return
 	}
-	defer lock.UnLock()
+	defer l.UnLock()
 	data, err := cacheAccessor.Read()
 	if err != nil {
 		log.Println(err)
