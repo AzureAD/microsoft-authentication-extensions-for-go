@@ -25,8 +25,8 @@ func TestLocking(t *testing.T) {
 		sleepInterval time.Duration
 		cacheFile     string
 	}{
-		{"Normal", 4, 100 * time.Millisecond, "cache_normal"},
-		{"High", 40, 100 * time.Millisecond, "cache_high"},
+		{"Normal", 4, 50 * time.Millisecond, "cache_normal"},
+		{"High", 40, 50 * time.Millisecond, "cache_high"},
 	}
 
 	for _, test := range tests {
@@ -35,7 +35,7 @@ func TestLocking(t *testing.T) {
 		if err != nil {
 			t.Fatalf("TestLocking(%s): Could not create cache file", test.desc)
 		}
-		err = spinThreads(test.concurrency, time.Duration(test.sleepInterval), tmpfile.Name())
+		err = spin(test.concurrency, time.Duration(test.sleepInterval), tmpfile.Name())
 		if err != nil {
 			t.Fatalf("TestLocking(%s): %s", test.desc, err)
 		}
@@ -63,7 +63,7 @@ func acquire(threadNo int, sleepInterval time.Duration, cacheFile string) {
 	cacheAccessor.Write(buffer.Bytes())
 }
 
-func spinThreads(concurrency int, sleepInterval time.Duration, cacheFile string) error {
+func spin(concurrency int, sleepInterval time.Duration, cacheFile string) error {
 	var wg sync.WaitGroup
 	wg.Add(concurrency)
 	for i := 0; i < concurrency; i++ {
@@ -73,7 +73,7 @@ func spinThreads(concurrency int, sleepInterval time.Duration, cacheFile string)
 		}(i)
 	}
 	wg.Wait()
-	i, err := validateResult(cacheFile)
+	i, err := validate(cacheFile)
 	if err != nil {
 		return err
 	}
@@ -83,7 +83,7 @@ func spinThreads(concurrency int, sleepInterval time.Duration, cacheFile string)
 	return nil
 }
 
-func validateResult(cacheFile string) (int, error) {
+func validate(cacheFile string) (int, error) {
 	var (
 		count               int
 		prevProc, tag, proc string
