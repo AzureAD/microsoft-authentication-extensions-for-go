@@ -2,7 +2,9 @@ package lock
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"strings"
@@ -13,26 +15,34 @@ import (
 	"github.com/AzureAD/microsoft-authentication-extensions-for-go/internal"
 )
 
-func spinThreads(noOfThreads int, sleepInterval time.Duration, t *testing.T) int {
-	cacheFile := "cache.txt"
-	var wg sync.WaitGroup
-	wg.Add(noOfThreads)
-	for i := 0; i < noOfThreads; i++ {
-		go func(i int) {
-			defer wg.Done()
-			acquireLockAndWriteToCache(i, sleepInterval, cacheFile)
-		}(i)
-	}
-	wg.Wait()
-	t.Cleanup(func() {
-		if err := os.Remove(cacheFile); err != nil {
-			log.Println("Failed to remove cache file", err)
-		}
-	})
-	return validateResult(cacheFile, t)
-}
+const cacheFile = "cache.txt"
 
-func acquireLockAndWriteToCache(threadNo int, sleepInterval time.Duration, cacheFile string) {
+func TestLocking(t *testing.T) {
+
+	tests := []struct {
+		desc          string
+		concurrency   int
+		sleepInterval time.Duration
+		cacheFile     string
+	}{
+		{"Normal", 4, 100 * time.Millisecond, "cache_normal"},
+		{"High", 40, 100 * time.Millisecond, "cache_high"},
+	}
+
+	for _, test := range tests {
+		tmpfile, err := ioutil.TempFile("", test.cacheFile)
+		defer os.Remove(tmpfile.Name())
+		if err != nil {
+			t.Fatalf("TestLocking(%s): Could not create cache file", test.desc)
+		}
+		err = spinThreads(test.concurrency, time.Duration(test.sleepInterval), tmpfile.Name())
+		if err != nil {
+			t.Fatalf("TestLocking(%s): %s", test.desc, err)
+		}
+	}
+
+}
+func acquire(threadNo int, sleepInterval time.Duration, cacheFile string) {
 	cacheAccessor := internal.NewFileAccessor(cacheFile)
 	lockfileName := cacheFile + ".lockfile"
 	l, err := New(lockfileName, WithRetries(60), WithRetryDelay(100))
@@ -48,61 +58,64 @@ func acquireLockAndWriteToCache(threadNo int, sleepInterval time.Duration, cache
 	var buffer bytes.Buffer
 	buffer.Write(data)
 	buffer.WriteString(fmt.Sprintf("< %d \n", threadNo))
-	time.Sleep(sleepInterval * time.Millisecond)
+	time.Sleep(sleepInterval)
 	buffer.WriteString(fmt.Sprintf("> %d \n", threadNo))
 	cacheAccessor.Write(buffer.Bytes())
 }
 
-func validateResult(cacheFile string, t *testing.T) int {
-	count := 0
-	var prevProc string = ""
-	var tag string
-	var proc string
+func spinThreads(concurrency int, sleepInterval time.Duration, cacheFile string) error {
+	var wg sync.WaitGroup
+	wg.Add(concurrency)
+	for i := 0; i < concurrency; i++ {
+		go func(i int) {
+			defer wg.Done()
+			acquire(i, sleepInterval, cacheFile)
+		}(i)
+	}
+	wg.Wait()
+	i, err := validateResult(cacheFile)
+	if err != nil {
+		return err
+	}
+	if i != concurrency*2 {
+		return fmt.Errorf("should have seen %d line entries, found %d", concurrency*2, i)
+	}
+	return nil
+}
+
+func validateResult(cacheFile string) (int, error) {
+	var (
+		count               int
+		prevProc, tag, proc string
+	)
 	data, err := os.ReadFile(cacheFile)
 	if err != nil {
 		log.Println(err)
 	}
-	dat := string(data)
-	temp := strings.Split(dat, "\n")
-	for _, ele := range temp {
-		if ele != "" {
-			count += 1
-			split := strings.Split(ele, " ")
-			tag = split[0]
-			proc = split[1]
-			if prevProc != "" {
-				if proc != prevProc {
-					t.Fatal("Process overlap found")
-				}
-				if tag != ">" {
-					t.Fatal("Process overlap found")
-				}
-				prevProc = ""
+	temp := strings.Split(string(data), "\n")
 
-			} else {
-				if tag != "<" {
-					t.Fatal("Opening bracket not found")
-				}
-				prevProc = proc
-			}
+	for _, s := range temp {
+		if strings.TrimSpace(s) == "" {
+			continue
 		}
+		count += 1
+		split := strings.Split(s, " ")
+		tag = split[0]
+		proc = split[1]
+		if prevProc == "" {
+			if tag != "<" {
+				return 0, errors.New("opening bracket not found")
+			}
+			prevProc = proc
+			continue
+		}
+		if proc != prevProc {
+			return 0, errors.New("process overlap found")
+		}
+		if tag != ">" {
+			return 0, errors.New("process overlap found")
+		}
+		prevProc = ""
 	}
-	return count
-}
-func TestForNormalWorkload(t *testing.T) {
-	noOfThreads := 4
-	sleepInterval := 100
-	n := spinThreads(noOfThreads, time.Duration(sleepInterval), t)
-	if n != 4*2 {
-		t.Fatalf("Should not observe starvation")
-	}
-}
-
-func TestForHighWorkload(t *testing.T) {
-	noOfThreads := 80
-	sleepInterval := 100
-	n := spinThreads(noOfThreads, time.Duration(sleepInterval), t)
-	if n > 80*2 {
-		t.Fatalf("Starvation or not, we should not observe garbled payload")
-	}
+	return count, nil
 }

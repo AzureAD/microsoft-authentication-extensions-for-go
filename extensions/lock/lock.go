@@ -2,7 +2,7 @@ package lock
 
 import (
 	"errors"
-	"fmt"
+	"io/fs"
 	"os"
 	"sync"
 	"time"
@@ -14,7 +14,6 @@ type Lock struct {
 	retries    int
 	retryDelay time.Duration
 
-	lockFile     *os.File
 	lockfileName string
 
 	fLock *flock.Flock
@@ -48,18 +47,15 @@ func (l *Lock) Lock() error {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	for tryCount := 0; tryCount < l.retries; tryCount++ {
-		lockfile, err := os.OpenFile(lockFileName, os.O_RDWR|os.O_CREATE)
-		if err != nil {
-			return &Lock{}, err
-		}
-		err := l.fLock.Lock()
-		if err != nil {
+		locked, err := l.fLock.TryLock()
+		if err != nil || !locked {
 			time.Sleep(l.retryDelay * time.Millisecond)
 			continue
-		} else {
-			if l.fLock.Locked() {
-				l.fLock.Fh.WriteString(fmt.Sprintf("{%d} {%s}", os.Getpid(), os.Args[0]))
-			}
+		} else if locked {
+			// commenting this till we have flock merged in and ready to use with changes
+			// otherwise it would not compile
+			//l.fLock.Fh.WriteString(fmt.Sprintf("{%d} {%s}", os.Getpid(), os.Args[0]))
+			//l.fLock.Fh.Sync()
 			return nil
 		}
 	}
@@ -71,9 +67,12 @@ func (l *Lock) UnLock() error {
 		if err := l.fLock.Unlock(); err != nil {
 			return err
 		}
-		l.lockFile.Close()
-		if err := os.Remove(l.fLock.Path()); err != nil {
-			return err
+		err := os.Remove(l.fLock.Path())
+		if err != nil {
+			errVal := err.(*fs.PathError)
+			if errVal != fs.ErrNotExist || errVal != fs.ErrPermission {
+				return err
+			}
 		}
 	}
 	return nil
