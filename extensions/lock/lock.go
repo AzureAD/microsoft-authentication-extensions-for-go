@@ -14,7 +14,8 @@ type Lock struct {
 	retries    int
 	retryDelay time.Duration
 
-	lockFile *os.File
+	lockFile     *os.File
+	lockfileName string
 
 	fLock *flock.Flock
 	mu    sync.Mutex
@@ -38,11 +39,8 @@ func New(lockFileName string, options ...Option) (*Lock, error) {
 	for _, o := range options {
 		o(l)
 	}
-	lockfile, err := os.Create(lockFileName)
-	if err != nil {
-		return &Lock{}, err
-	}
-	l.fLock = flock.New(lockfile.Name())
+	l.fLock = flock.New(lockFileName)
+	l.lockfileName = lockFileName
 	return l, nil
 }
 
@@ -50,6 +48,10 @@ func (l *Lock) Lock() error {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	for tryCount := 0; tryCount < l.retries; tryCount++ {
+		lockfile, err := os.OpenFile(lockFileName, os.O_RDWR|os.O_CREATE)
+		if err != nil {
+			return &Lock{}, err
+		}
 		err := l.fLock.Lock()
 		if err != nil {
 			time.Sleep(l.retryDelay * time.Millisecond)
