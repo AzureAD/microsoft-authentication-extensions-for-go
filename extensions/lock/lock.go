@@ -14,8 +14,6 @@ type Lock struct {
 	retries    int
 	retryDelay time.Duration
 
-	lockfileName string
-
 	fLock *flock.Flock
 	mu    sync.Mutex
 }
@@ -39,7 +37,6 @@ func New(lockFileName string, options ...Option) (*Lock, error) {
 		o(l)
 	}
 	l.fLock = flock.New(lockFileName)
-	l.lockfileName = lockFileName
 	return l, nil
 }
 
