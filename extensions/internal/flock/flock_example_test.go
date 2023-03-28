@@ -11,7 +11,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/gofrs/flock"
+	"github.com/AzureAD/microsoft-authentication-extensions-for-go/extensions/internal/flock"
 )
 
 func ExampleFlock_Locked() {

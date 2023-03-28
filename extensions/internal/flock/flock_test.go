@@ -13,8 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gofrs/flock"
-
+	"github.com/AzureAD/microsoft-authentication-extensions-for-go/extensions/internal/flock"
 	. "gopkg.in/check.v1"
 )
 
