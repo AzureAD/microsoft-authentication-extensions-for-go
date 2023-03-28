@@ -56,6 +56,11 @@ func (f *Flock) Close() error {
 	return f.Unlock()
 }
 
+// Fh returns the lock file
+func (f *Flock) Fh() *os.File {
+	return f.fh
+}
+
 // Path returns the path as provided in NewFlock().
 func (f *Flock) Path() string {
 	return f.path
