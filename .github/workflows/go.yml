@@ -1,0 +1,36 @@
+name: Build and Test
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+  push:
+    branches: [dev, main]
+
+jobs:
+  build_test:
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+
+    runs-on: ${{matrix.os}}
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-go@v4
+        with:
+          go-version-file: "go.mod"
+
+      - name: Build
+        run: go build -x ./extensions/...
+
+      - name: Test
+        run: go test -race -v ./...
+
+      - name: Lint
+        # lint even when a previous step failed
+        if: ${{!cancelled()}}
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: v1.52
+          args: -v
