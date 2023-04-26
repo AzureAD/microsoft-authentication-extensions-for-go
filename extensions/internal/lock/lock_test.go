@@ -64,14 +64,14 @@ func TestLockError(t *testing.T) {
 }
 
 func TestLockTimeout(t *testing.T) {
-	defer func(d time.Duration) { timeout = d }(timeout)
-	timeout = 0
-
 	p := filepath.Join(t.TempDir(), t.Name())
 	a, err := New(p, 0)
 	require.NoError(t, err)
 	err = a.Lock(ctx)
 	require.NoError(t, err)
+
+	defer func(d time.Duration) { timeout = d }(timeout)
+	timeout = 0
 	b, err := New(p, 0)
 	require.NoError(t, err)
 
