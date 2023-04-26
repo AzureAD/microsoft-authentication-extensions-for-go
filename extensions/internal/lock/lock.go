@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
+	"syscall"
 	"time"
 
 	"github.com/AzureAD/microsoft-authentication-extensions-for-go/extensions/internal/flock"
@@ -51,15 +53,21 @@ func (l *Lock) Lock(ctx context.Context) error {
 		ctx, cancel = context.WithTimeout(ctx, timeout)
 		defer cancel()
 	}
-	locked, err := l.f.TryLockContext(ctx, l.retryDelay)
-	if err != nil {
-		return err
+	for {
+		// flock opens the file before locking it and returns errors due to an existing
+		// lock or one acquired by another process after this process has opened the
+		// file. We ignore some errors here because in such cases we want to retry until
+		// the deadline.
+		locked, err := l.f.TryLockContext(ctx, l.retryDelay)
+		if err != nil {
+			if !(errors.Is(err, os.ErrPermission) || isWindowsSharingViolation(err)) {
+				return err
+			}
+		} else if locked {
+			_, _ = l.f.Fh().WriteString(fmt.Sprintf("{%d} {%s}", os.Getpid(), os.Args[0]))
+			return nil
+		}
 	}
-	if locked {
-		_, _ = l.f.Fh().WriteString(fmt.Sprintf("{%d} {%s}", os.Getpid(), os.Args[0]))
-		return nil
-	}
-	return errors.New("couldn't acquire file lock")
 }
 
 // Unlock releases the lock and deletes the lock file.
@@ -68,8 +76,13 @@ func (l *Lock) Unlock() error {
 	if err == nil {
 		err = os.Remove(l.f.Path())
 	}
-	if errors.Is(err, os.ErrNotExist) {
+	// ignore errors caused by another process deleting the file or locking between the above Unlock and Remove
+	if errors.Is(err, os.ErrNotExist) || errors.Is(err, os.ErrPermission) || isWindowsSharingViolation(err) {
 		return nil
 	}
 	return err
+}
+
+func isWindowsSharingViolation(err error) bool {
+	return runtime.GOOS == "windows" && errors.Is(err, syscall.Errno(32))
 }
