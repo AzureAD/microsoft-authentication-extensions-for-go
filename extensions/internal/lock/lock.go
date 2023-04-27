@@ -28,7 +28,9 @@ type flocker interface {
 }
 
 // Lock uses a file lock to coordinate access to resources shared with other processes.
-// Callers are responsible for preventing races within a process.
+// Callers are responsible for preventing races within a process. Lock applies advisory
+// locks on Linux and macOS and is therefore unreliable on these platforms when several
+// processes concurrently try to acquire the lock.
 type Lock struct {
 	f          flocker
 	retryDelay time.Duration
