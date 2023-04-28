@@ -6,8 +6,11 @@ import (
 	"testing"
 )
 
-func Test(t *testing.T) {
+func TestInternal(t *testing.T) {
 	tmpFileFh, err := ioutil.TempFile(os.TempDir(), "go-flock-")
+	if err != nil {
+		t.Fatal(err)
+	}
 	tmpFileFh.Close()
 	tmpFile := tmpFileFh.Name()
 	os.Remove(tmpFile)
