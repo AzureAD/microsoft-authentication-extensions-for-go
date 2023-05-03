@@ -4,8 +4,10 @@
 package lock
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"io"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -49,8 +51,37 @@ func TestCreatesAndRemovesFile(t *testing.T) {
 	require.NoError(t, err)
 	require.FileExists(t, p, "Lock didn't create the file")
 
+	buf := bytes.NewBuffer(nil)
+	_, err = io.Copy(buf, lock.f.Fh())
+	require.NoError(t, err)
+	require.NotEmpty(t, buf, "Lock didn't write debug info to the locked file")
+
 	err = lock.Unlock()
 	require.NoError(t, err)
+	require.NoFileExists(t, p, "Unlock didn't remove the file")
+}
+
+func TestFileExists(t *testing.T) {
+	p := filepath.Join(t.TempDir(), t.Name())
+	f, err := os.Create(p)
+	require.NoError(t, err)
+	data := "stuff"
+	_, err = f.WriteString(data)
+	require.NoError(t, err)
+	require.NoError(t, f.Close())
+
+	// Lock should succeed when the file exists but isn't locked
+	lock, err := New(p, 0)
+	require.NoError(t, err)
+	err = lock.Lock(ctx)
+	require.NoError(t, err)
+
+	buf := bytes.NewBuffer(nil)
+	_, err = io.Copy(buf, lock.f.Fh())
+	require.NoError(t, err)
+	require.NotEqual(t, data, buf, "Lock didn't write debug info to the locked file")
+
+	require.NoError(t, lock.Unlock())
 	require.NoFileExists(t, p, "Unlock didn't remove the file")
 }
 

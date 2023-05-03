@@ -66,7 +66,10 @@ func (l *Lock) Lock(ctx context.Context) error {
 				return err
 			}
 		} else if locked {
-			_, _ = l.f.Fh().WriteString(fmt.Sprintf("{%d} {%s}", os.Getpid(), os.Args[0]))
+			if fh := l.f.Fh(); fh != nil {
+				s := fmt.Sprintf("{%d} {%s}", os.Getpid(), os.Args[0])
+				_, _ = fh.WriteString(s)
+			}
 			return nil
 		}
 	}

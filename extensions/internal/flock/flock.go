@@ -19,7 +19,6 @@ package flock
 import (
 	"context"
 	"os"
-	"runtime"
 	"sync"
 	"time"
 )
@@ -120,24 +119,11 @@ func tryCtx(ctx context.Context, fn func() (bool, error), retryDelay time.Durati
 }
 
 func (f *Flock) setFh() error {
-	// open a new os.File instance
-	// create it if it doesn't exist, and open the file read-only.
-	flags := os.O_CREATE
-	if runtime.GOOS == "aix" {
-		// AIX cannot preform write-lock (ie exclusive) on a
-		// read-only file.
-		flags |= os.O_RDWR
-	} else {
-		flags |= os.O_RDONLY
+	fh, err := os.OpenFile(f.path, os.O_CREATE|os.O_RDWR, os.FileMode(0600))
+	if err == nil {
+		f.fh = fh
 	}
-	fh, err := os.OpenFile(f.path, flags, os.FileMode(0600))
-	if err != nil {
-		return err
-	}
-
-	// set the filehandle on the struct
-	f.fh = fh
-	return nil
+	return err
 }
 
 // ensure the file handle is closed if no lock is held
