@@ -1,0 +1,9 @@
+linters:
+  enable:
+    - gocritic
+    - gofmt
+
+linters-settings:
+  gocritic:
+    enabled-checks:
+      - evalOrder
