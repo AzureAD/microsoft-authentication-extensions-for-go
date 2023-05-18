@@ -9,7 +9,6 @@ package accessor
 import (
 	"context"
 	"errors"
-	"math"
 	"os"
 	"path/filepath"
 	"sync"
@@ -88,21 +87,16 @@ func dpapi(op operation, data []byte) (result []byte, err error) {
 	switch op {
 	case decrypt:
 		// https://learn.microsoft.com/windows/win32/api/dpapi/nf-dpapi-cryptunprotectdata
-		err = windows.CryptUnprotectData(&in, nil, nil, 0, nil, 1, &out)
+		err = windows.CryptUnprotectData(&in, nil, nil, 0, nil, windows.CRYPTPROTECT_UI_FORBIDDEN, &out)
 	case encrypt:
 		// https://learn.microsoft.com/windows/win32/api/dpapi/nf-dpapi-cryptprotectdata
-		err = windows.CryptProtectData(&in, nil, nil, 0, nil, 1, &out)
+		err = windows.CryptProtectData(&in, nil, nil, 0, nil, windows.CRYPTPROTECT_UI_FORBIDDEN, &out)
 	default:
 		err = errors.New("invalid operation")
 	}
 	if err == nil {
-		// cast out.Data to a pointer to an arbitrarily long array, then slice the array and copy out.Size bytes from the
-		// slice to result. This avoids allocating memory for a throwaway buffer but imposes a max size on the data because
-		// the fictive array backing the slice can't be larger than the address space or the maximum value of an int. Those
-		// values vary by platform, so the array size here is a compromise for 32-bit systems and allows ~2 GB of data.
 		result = make([]byte, out.Size)
-		source := (*[math.MaxInt32 - 1]byte)(unsafe.Pointer(out.Data))[:]
-		copy(result, source)
+		copy(result, unsafe.Slice(out.Data, out.Size))
 	}
 	return result, err
 }
