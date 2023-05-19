@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/AzureAD/microsoft-authentication-extensions-for-go/extensions/accessor"
+	"github.com/AzureAD/microsoft-authentication-extensions-for-go/extensions/cache/accessor"
 )
 
 // Storage stores data in an unencrypted file.

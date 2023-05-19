@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/AzureAD/microsoft-authentication-extensions-for-go/extensions/accessor"
+	"github.com/AzureAD/microsoft-authentication-extensions-for-go/extensions/cache/accessor"
 	"github.com/AzureAD/microsoft-authentication-extensions-for-go/extensions/internal/lock"
 	"github.com/AzureAD/microsoft-authentication-library-for-go/apps/cache"
 )

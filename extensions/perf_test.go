@@ -9,8 +9,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/AzureAD/microsoft-authentication-extensions-for-go/extensions/accessor/file"
 	"github.com/AzureAD/microsoft-authentication-extensions-for-go/extensions/cache"
+	"github.com/AzureAD/microsoft-authentication-extensions-for-go/extensions/cache/accessor/file"
 	"github.com/AzureAD/microsoft-authentication-library-for-go/apps/confidential"
 	"github.com/AzureAD/microsoft-authentication-library-for-go/apps/public"
 	"github.com/stretchr/testify/require"
