@@ -11,6 +11,7 @@ import (
 
 	"github.com/AzureAD/microsoft-authentication-extensions-for-go/extensions/cache"
 	"github.com/AzureAD/microsoft-authentication-extensions-for-go/extensions/cache/accessor/file"
+	mcache "github.com/AzureAD/microsoft-authentication-library-for-go/apps/cache"
 	"github.com/AzureAD/microsoft-authentication-library-for-go/apps/confidential"
 	"github.com/AzureAD/microsoft-authentication-library-for-go/apps/public"
 	"github.com/stretchr/testify/require"
@@ -18,104 +19,81 @@ import (
 
 // this file benchmarks MSAL clients using Cache and file.Accessor
 
-func BenchmarkConfidentialClient(b *testing.B) {
+func newCache(b *testing.B) *cache.Cache {
 	p := filepath.Join(b.TempDir(), b.Name())
 	a, err := file.New(p)
 	require.NoError(b, err)
 	c, err := cache.New(a, p+".timestamp")
 	require.NoError(b, err)
-	cred, err := confidential.NewCredFromSecret("*")
-	require.NoError(b, err)
-	client, err := confidential.New(
-		"https://login.microsoftonline.com/tenant", "clientID", cred, confidential.WithCache(c), confidential.WithHTTPClient(&mockSTS{}),
-	)
-	require.NoError(b, err)
-
-	gr := 10
-	wg := sync.WaitGroup{}
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		for i := 0; i < gr; i++ {
-			wg.Add(1)
-			go func(n int) {
-				defer wg.Done()
-				s := fmt.Sprint(n)
-				_, _ = client.AcquireTokenByCredential(ctx, []string{s})
-				_, _ = client.AcquireTokenSilent(ctx, []string{s})
-			}(i)
-		}
-		wg.Wait()
-	}
+	return c
 }
 
-func BenchmarkConfidentialClient_NoPersistence(b *testing.B) {
-	cred, err := confidential.NewCredFromSecret("*")
-	require.NoError(b, err)
-	client, err := confidential.New("https://login.microsoftonline.com/tenant", "clientID", cred, confidential.WithHTTPClient(&mockSTS{}))
-	require.NoError(b, err)
-
-	gr := 10
-	wg := sync.WaitGroup{}
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		for i := 0; i < gr; i++ {
-			wg.Add(1)
-			go func(n int) {
-				defer wg.Done()
-				s := []string{fmt.Sprint(n)}
-				_, _ = client.AcquireTokenByCredential(ctx, s)
-				_, _ = client.AcquireTokenSilent(ctx, s)
-			}(i)
+func BenchmarkConfidentialClient(b *testing.B) {
+	for _, baseline := range []bool{false, true} {
+		name := "file accessor"
+		if baseline {
+			name = "no persistence"
 		}
-		wg.Wait()
+		b.Run(name, func(b *testing.B) {
+			var c mcache.ExportReplace
+			if !baseline {
+				c = newCache(b)
+			}
+			cred, err := confidential.NewCredFromSecret("*")
+			require.NoError(b, err)
+			client, err := confidential.New(
+				"https://login.microsoftonline.com/tenant", "ID", cred, confidential.WithCache(c), confidential.WithHTTPClient(&mockSTS{}),
+			)
+			require.NoError(b, err)
+
+			gr := 10
+			wg := sync.WaitGroup{}
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				for i := 0; i < gr; i++ {
+					wg.Add(1)
+					go func(n int) {
+						defer wg.Done()
+						s := fmt.Sprint(n)
+						_, _ = client.AcquireTokenByCredential(ctx, []string{s})
+						_, _ = client.AcquireTokenSilent(ctx, []string{s})
+					}(i)
+				}
+				wg.Wait()
+			}
+		})
 	}
 }
 
 func BenchmarkPublicClient(b *testing.B) {
-	p := filepath.Join(b.TempDir(), b.Name())
-	a, err := file.New(p)
-	require.NoError(b, err)
-	c, err := cache.New(a, p+".timestamp")
-	require.NoError(b, err)
-	sts := mockSTS{}
-	client, err := public.New("clientID", public.WithCache(c), public.WithHTTPClient(&sts))
-	require.NoError(b, err)
-
-	gr := 10
-	wg := sync.WaitGroup{}
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		for i := 0; i < gr; i++ {
-			wg.Add(1)
-			go func(n int) {
-				defer wg.Done()
-				s := fmt.Sprint(n)
-				ar, _ := client.AcquireTokenByUsernamePassword(ctx, []string{s}, s, "password")
-				_, _ = client.AcquireTokenSilent(ctx, []string{s}, public.WithSilentAccount(ar.Account))
-			}(i)
+	for _, baseline := range []bool{false, true} {
+		name := "file accessor"
+		if baseline {
+			name = "no persistence"
 		}
-		wg.Wait()
-	}
-}
+		b.Run(name, func(b *testing.B) {
+			var c mcache.ExportReplace
+			if !baseline {
+				c = newCache(b)
+			}
+			client, err := public.New("clientID", public.WithCache(c), public.WithHTTPClient(&mockSTS{}))
+			require.NoError(b, err)
 
-func BenchmarkPublicClient_NoPersistence(b *testing.B) {
-	sts := mockSTS{}
-	client, err := public.New("clientID", public.WithHTTPClient(&sts))
-	require.NoError(b, err)
-
-	gr := 10
-	wg := sync.WaitGroup{}
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		for i := 0; i < gr; i++ {
-			wg.Add(1)
-			go func(n int) {
-				defer wg.Done()
-				s := fmt.Sprint(n)
-				ar, _ := client.AcquireTokenByUsernamePassword(ctx, []string{s}, s, "password")
-				_, _ = client.AcquireTokenSilent(ctx, []string{s}, public.WithSilentAccount(ar.Account))
-			}(i)
-		}
-		wg.Wait()
+			gr := 10
+			wg := sync.WaitGroup{}
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				for i := 0; i < gr; i++ {
+					wg.Add(1)
+					go func(n int) {
+						defer wg.Done()
+						s := fmt.Sprint(n)
+						ar, _ := client.AcquireTokenByUsernamePassword(ctx, []string{s}, s, "password")
+						_, _ = client.AcquireTokenSilent(ctx, []string{s}, public.WithSilentAccount(ar.Account))
+					}(i)
+				}
+				wg.Wait()
+			}
+		})
 	}
 }
