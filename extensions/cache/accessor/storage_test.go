@@ -1,9 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License. See LICENSE in the project root for license information.
 
-// TODO: add other platforms
-//go:build windows
-// +build windows
+//go:build linux || windows
+// +build linux windows
 
 package accessor
 
