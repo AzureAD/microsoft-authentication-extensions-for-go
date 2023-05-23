@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License. See LICENSE in the project root for license information.
 
-//go:build linux
-// +build linux
+//go:build linux && cgo
+// +build linux,cgo
 
 package accessor
 
