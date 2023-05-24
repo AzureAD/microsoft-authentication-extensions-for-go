@@ -8,6 +8,7 @@ package accessor
 
 import (
 	"context"
+	"errors"
 
 	"github.com/keybase/go-keychain"
 )
@@ -28,9 +29,12 @@ type Storage struct {
 	account, service string
 }
 
-// New is the constructor for Storage. "name" is the service name for the keychain item holding cached data.
-func New(name string, opts ...option) (*Storage, error) {
-	s := Storage{service: name}
+// New is the constructor for Storage. "servName" is the service name for the keychain item holding cached data.
+func New(servName string, opts ...option) (*Storage, error) {
+	if servName == "" {
+		return nil, errors.New("servName can't be empty")
+	}
+	s := Storage{service: servName}
 	for _, o := range opts {
 		if err := o(&s); err != nil {
 			return nil, err
@@ -39,7 +43,7 @@ func New(name string, opts ...option) (*Storage, error) {
 	return &s, nil
 }
 
-// Read returns data stored on the keychain or, if the keychain item doesn't exist, a nil slice and error.
+// Read returns data stored on the keychain or, if the keychain item doesn't exist, a nil slice and nil error.
 func (s *Storage) Read(context.Context) ([]byte, error) {
 	data, err := keychain.GetGenericPassword(s.service, s.account, "", "")
 	if err != nil {
@@ -49,19 +53,19 @@ func (s *Storage) Read(context.Context) ([]byte, error) {
 }
 
 // Write stores data on the keychain.
-func (k *Storage) Write(_ context.Context, data []byte) error {
-	pw, err := keychain.GetGenericPassword(k.service, k.account, "", "")
+func (s *Storage) Write(_ context.Context, data []byte) error {
+	pw, err := keychain.GetGenericPassword(s.service, s.account, "", "")
 	if err != nil {
 		return err
 	}
-	item := keychain.NewGenericPassword(k.service, k.account, "", nil, "")
+	item := keychain.NewGenericPassword(s.service, s.account, "", nil, "")
 	if pw == nil {
 		// password not found: add it to the keychain
 		item.SetData(data)
 		err = keychain.AddItem(item)
 	} else {
 		// password found: update its value
-		update := keychain.NewGenericPassword(k.service, k.account, "", data, "")
+		update := keychain.NewGenericPassword(s.service, s.account, "", data, "")
 		err = keychain.UpdateItem(item, update)
 	}
 	return err
