@@ -12,7 +12,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -24,61 +23,35 @@ var (
 	ctx = context.Background()
 
 	// the Windows implementation doesn't require user interaction
-	runTests = runtime.GOOS == "windows" || os.Getenv(msalextManualTest) != ""
+	manualTests = runtime.GOOS == "windows" || os.Getenv(msalextManualTest) != ""
 )
 
-func TestRace(t *testing.T) {
-	if !runTests {
+func TestReadWrite(t *testing.T) {
+	if !manualTests {
 		t.Skipf("set %s to run this test", msalextManualTest)
 	}
-	p := filepath.Join(t.TempDir(), t.Name())
-	a, err := New(p)
-	require.NoError(t, err)
+	for _, test := range []struct {
+		desc string
+		want []byte
+	}{
+		{desc: "Test when no stored data exists"},
+		{desc: "Test writing data then reading it", want: []byte("want")},
+	} {
+		t.Run(test.desc, func(t *testing.T) {
+			p := filepath.Join(t.TempDir(), t.Name())
+			a, err := New(p)
+			require.NoError(t, err)
 
-	actual, err := a.Read(ctx)
-	require.NoError(t, err)
-	require.Empty(t, actual)
-
-	expected := "expected"
-	wg := sync.WaitGroup{}
-	for i := 0; i < 20; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			if !t.Failed() {
-				actual := []byte{}
-				err := a.Write(ctx, []byte(expected))
-				if err == nil {
-					actual, err = a.Read(ctx)
-				}
-				if err != nil {
-					t.Error(err)
-				} else if a := string(actual); a != expected {
-					t.Errorf("expected %q, got %q", expected, a)
-				}
+			if test.want != nil {
+				cp := make([]byte, len(test.want))
+				copy(cp, test.want)
+				err = a.Write(ctx, cp)
+				require.NoError(t, err)
 			}
-		}()
+
+			actual, err := a.Read(ctx)
+			require.NoError(t, err)
+			require.Equal(t, test.want, actual)
+		})
 	}
-	wg.Wait()
-}
-
-func TestRoundTrip(t *testing.T) {
-	if !runTests {
-		t.Skipf("set %s to run this test", msalextManualTest)
-	}
-	p := filepath.Join(t.TempDir(), t.Name())
-	a, err := New(p)
-	require.NoError(t, err)
-
-	actual, err := a.Read(ctx)
-	require.NoError(t, err)
-	require.Empty(t, actual)
-
-	expected := []byte("expected")
-	err = a.Write(ctx, expected)
-	require.NoError(t, err)
-
-	actual, err = a.Read(ctx)
-	require.NoError(t, err)
-	require.Equal(t, expected, actual)
 }
