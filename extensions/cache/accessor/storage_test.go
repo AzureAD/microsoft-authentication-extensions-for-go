@@ -54,33 +54,3 @@ func TestReadWrite(t *testing.T) {
 		})
 	}
 }
-
-func TestEmpty(t *testing.T) {
-	if !manualTests {
-		t.Skipf("set %s to run this test", msalextManualTest)
-	}
-	p := filepath.Join(t.TempDir(), t.Name())
-	a, err := New(p)
-	require.NoError(t, err)
-
-	actual, err := a.Read(ctx)
-	require.NoError(t, err)
-	require.Nil(t, actual)
-}
-
-func TestRoundTrip(t *testing.T) {
-	if !manualTests {
-		t.Skipf("set %s to run this test", msalextManualTest)
-	}
-	p := filepath.Join(t.TempDir(), t.Name())
-	a, err := New(p)
-	require.NoError(t, err)
-
-	expected := []byte("expected")
-	err = a.Write(ctx, expected)
-	require.NoError(t, err)
-
-	actual, err := a.Read(ctx)
-	require.NoError(t, err)
-	require.Equal(t, expected, actual)
-}
