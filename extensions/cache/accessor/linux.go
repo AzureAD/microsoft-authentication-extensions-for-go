@@ -125,8 +125,8 @@ func WithLabel(label string) option {
 	}
 }
 
-// Storage uses libsecret to store data in a DBus Secret Service such as GNOME Keyring or KDE Wallet. The Service must
-// be unlocked before Storage can read or write data to it. Unlocking typically requires user interaction, and Some
+// Storage uses libsecret to store data by a DBus Secret Service such as GNOME Keyring or KDE Wallet. The Service must
+// be unlocked before Storage can read or write data to it. Unlocking typically requires user interaction, and some
 // systems may be unable to unlock the Service in a headless environment such as an SSH session.
 type Storage struct {
 	// attributes are key/value pairs on the secret schema
@@ -205,7 +205,7 @@ func New(name string, opts ...option) (*Storage, error) {
 	return &s, nil
 }
 
-// Read returns cached data.
+// Read returns data stored according to the secret schema or, if no such data exists, a nil slice and nil error.
 func (s *Storage) Read(context.Context) ([]byte, error) {
 	// the first nil terminates the list and libsecret ignores any extras
 	attrs := []*C.char{nil, nil, nil, nil}
@@ -222,6 +222,9 @@ func (s *Storage) Read(context.Context) ([]byte, error) {
 	if e != nil {
 		defer C.free_g_error(s.freeError, e)
 		return nil, fmt.Errorf("couldn't read data from secret service: %q", C.GoString(e.message))
+	}
+	if data == nil {
+		return nil, nil
 	}
 	defer C.free(unsafe.Pointer(data))
 	result, err := base64.StdEncoding.DecodeString(C.GoString(data))
