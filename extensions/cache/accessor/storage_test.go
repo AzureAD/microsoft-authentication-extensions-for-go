@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License. See LICENSE in the project root for license information.
 
-//go:build (linux && cgo) || windows
-// +build linux,cgo windows
+//go:build (darwin && cgo) || (linux && cgo) || windows
+// +build darwin,cgo linux,cgo windows
 
 package accessor
 

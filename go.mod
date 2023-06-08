@@ -4,6 +4,7 @@ go 1.18
 
 require (
 	github.com/AzureAD/microsoft-authentication-library-for-go v1.0.0
+	github.com/keybase/go-keychain v0.0.0-20230523030712-b5615109f100
 	github.com/stretchr/testify v1.8.2
 	golang.org/x/sys v0.8.0
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
