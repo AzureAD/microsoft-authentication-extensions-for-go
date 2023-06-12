@@ -1,10 +1,9 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License. See LICENSE in the project root for license information.
 
-package extensions
+package cache
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"path/filepath"
@@ -12,21 +11,18 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/AzureAD/microsoft-authentication-extensions-for-go/extensions/cache"
-	"github.com/AzureAD/microsoft-authentication-extensions-for-go/extensions/cache/accessor/file"
+	"github.com/AzureAD/microsoft-authentication-extensions-for-go/cache/accessor/file"
 	"github.com/AzureAD/microsoft-authentication-library-for-go/apps/confidential"
 	"github.com/AzureAD/microsoft-authentication-library-for-go/apps/public"
 	"github.com/stretchr/testify/require"
 )
-
-var ctx = context.Background()
 
 func TestConfidentialClient(t *testing.T) {
 	t.Parallel()
 	p := filepath.Join(t.TempDir(), t.Name())
 	a, err := file.New(p)
 	require.NoError(t, err)
-	c, err := cache.New(a, p+".timestamp")
+	c, err := New(a, p+".timestamp")
 	require.NoError(t, err)
 	cred, err := confidential.NewCredFromSecret("*")
 	require.NoError(t, err)
@@ -86,7 +82,7 @@ func TestPublicClient(t *testing.T) {
 	p := filepath.Join(t.TempDir(), t.Name())
 	a, err := file.New(p)
 	require.NoError(t, err)
-	c, err := cache.New(a, p+".timestamp")
+	c, err := New(a, p+".timestamp")
 	require.NoError(t, err)
 	sts := mockSTS{}
 	client, err := public.New("clientID", public.WithCache(c), public.WithHTTPClient(&sts))

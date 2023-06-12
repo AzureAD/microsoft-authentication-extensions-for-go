@@ -1,4 +1,4 @@
-module github.com/AzureAD/microsoft-authentication-extensions-for-go
+module github.com/AzureAD/microsoft-authentication-extensions-for-go/cache
 
 go 1.18
 

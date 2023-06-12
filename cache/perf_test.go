@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License. See LICENSE in the project root for license information.
 
-package extensions
+package cache
 
 import (
 	"fmt"
@@ -9,9 +9,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/AzureAD/microsoft-authentication-extensions-for-go/extensions/cache"
-	"github.com/AzureAD/microsoft-authentication-extensions-for-go/extensions/cache/accessor/file"
-	mcache "github.com/AzureAD/microsoft-authentication-library-for-go/apps/cache"
+	"github.com/AzureAD/microsoft-authentication-extensions-for-go/cache/accessor/file"
+	"github.com/AzureAD/microsoft-authentication-library-for-go/apps/cache"
 	"github.com/AzureAD/microsoft-authentication-library-for-go/apps/confidential"
 	"github.com/AzureAD/microsoft-authentication-library-for-go/apps/public"
 	"github.com/stretchr/testify/require"
@@ -19,11 +18,11 @@ import (
 
 // this file benchmarks MSAL clients using Cache and file.Accessor
 
-func newCache(b *testing.B) *cache.Cache {
+func newCache(b *testing.B) *Cache {
 	p := filepath.Join(b.TempDir(), b.Name())
 	a, err := file.New(p)
 	require.NoError(b, err)
-	c, err := cache.New(a, p+".timestamp")
+	c, err := New(a, p+".timestamp")
 	require.NoError(b, err)
 	return c
 }
@@ -35,7 +34,7 @@ func BenchmarkConfidentialClient(b *testing.B) {
 			name = "no persistence"
 		}
 		b.Run(name, func(b *testing.B) {
-			var c mcache.ExportReplace
+			var c cache.ExportReplace
 			if !baseline {
 				c = newCache(b)
 			}
@@ -72,7 +71,7 @@ func BenchmarkPublicClient(b *testing.B) {
 			name = "no persistence"
 		}
 		b.Run(name, func(b *testing.B) {
-			var c mcache.ExportReplace
+			var c cache.ExportReplace
 			if !baseline {
 				c = newCache(b)
 			}

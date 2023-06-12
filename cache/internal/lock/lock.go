@@ -13,7 +13,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/AzureAD/microsoft-authentication-extensions-for-go/extensions/internal/flock"
+	"github.com/AzureAD/microsoft-authentication-extensions-for-go/cache/internal/flock"
 )
 
 // timeout lets tests set the default amount of time allowed to acquire the lock
