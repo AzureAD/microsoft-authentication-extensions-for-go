@@ -13,6 +13,9 @@ import (
 )
 
 func TestWithAccount(t *testing.T) {
+	if !manualTests {
+		t.Skipf("set %s to run this test", msalextManualTest)
+	}
 	account := "account"
 	a, err := New(t.Name(), WithAccount(account))
 	require.NoError(t, err)
@@ -24,4 +27,6 @@ func TestWithAccount(t *testing.T) {
 	actual, err := a.Read(ctx)
 	require.NoError(t, err)
 	require.Equal(t, expected, actual)
+
+	require.NoError(t, a.Clear(ctx))
 }

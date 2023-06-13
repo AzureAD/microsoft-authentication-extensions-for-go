@@ -25,7 +25,7 @@ var (
 	manualTests = runtime.GOOS == "windows" || os.Getenv(msalextManualTest) != ""
 )
 
-func TestReadWrite(t *testing.T) {
+func TestReadWriteClear(t *testing.T) {
 	if !manualTests {
 		t.Skipf("set %s to run this test", msalextManualTest)
 	}
@@ -51,6 +51,8 @@ func TestReadWrite(t *testing.T) {
 			actual, err := a.Read(ctx)
 			require.NoError(t, err)
 			require.Equal(t, test.want, actual)
+
+			require.NoError(t, a.Clear(context.Background()))
 		})
 	}
 }
