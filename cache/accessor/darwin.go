@@ -43,6 +43,15 @@ func New(servName string, opts ...option) (*Storage, error) {
 	return &s, nil
 }
 
+// Clear deletes the stored data, if any exists.
+func (s *Storage) Clear(context.Context) error {
+	err := keychain.DeleteGenericPasswordItem(s.service, s.account)
+	if errors.Is(err, keychain.ErrorItemNotFound) || errors.Is(err, keychain.ErrorNoSuchKeychain) {
+		return nil
+	}
+	return err
+}
+
 // Read returns data stored on the keychain or, if the keychain item doesn't exist, a nil slice and nil error.
 func (s *Storage) Read(context.Context) ([]byte, error) {
 	data, err := keychain.GetGenericPassword(s.service, s.account, "", "")
@@ -70,3 +79,5 @@ func (s *Storage) Write(_ context.Context, data []byte) error {
 	}
 	return err
 }
+
+var _ Accessor = (*Storage)(nil)

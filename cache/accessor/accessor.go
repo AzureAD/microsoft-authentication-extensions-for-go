@@ -7,6 +7,7 @@ import "context"
 
 // Accessor accesses data storage.
 type Accessor interface {
+	Clear(context.Context) error
 	Read(context.Context) ([]byte, error)
 	Write(context.Context, []byte) error
 }

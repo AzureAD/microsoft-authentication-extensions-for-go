@@ -67,6 +67,16 @@ void free_g_error(void *f, gError *err)
     fn(err);
 }
 
+// clear (delete) a secret. f must be a pointer to secret_password_clear_sync
+// https://gnome.pages.gitlab.gnome.org/libsecret/func.password_clear_sync.html
+int clear(void *f, schema *sch, void* cancellable, gError **err, char *key1, char *value1, char *key2, char *value2)
+{
+    int (*fn)(schema *sch, void* cancellable, gError **err, char *key1, char *value1, char *key2, char *value2, ...);
+    fn = (int (*)(schema *sch, void* cancellable, gError **err, char *key1, char *value1, char *key2, char *value2, ...))f;
+    int r = fn(sch, cancellable, err, key1, value1, key2, value2, NULL);
+    return r;
+}
+
 // lookup a password. f must be a pointer to secret_password_lookup_sync
 // https://gnome.pages.gitlab.gnome.org/libsecret/func.password_lookup_sync.html
 char *lookup(void *f, schema *sch, void* cancellable, gError **err, char *key1, char *value1, char *key2, char *value2)
@@ -137,8 +147,8 @@ type Storage struct {
 	handle unsafe.Pointer
 	// label of the secret schema
 	label string
-	// freeError, lookup and store are the addresses of libsecret functions
-	freeError, lookup, store unsafe.Pointer
+	// clear, freeError, lookup and store are the addresses of libsecret functions
+	clear, freeError, lookup, store unsafe.Pointer
 	// schema identifies the cached data in the secret service
 	schema *C.schema
 }
@@ -179,6 +189,10 @@ func New(name string, opts ...option) (*Storage, error) {
 		}
 	})
 
+	clear, err := s.symbol("secret_password_clear_sync")
+	if err != nil {
+		return nil, err
+	}
 	freeError, err := s.symbol("g_error_free")
 	if err != nil {
 		return nil, err
@@ -191,6 +205,7 @@ func New(name string, opts ...option) (*Storage, error) {
 	if err != nil {
 		return nil, err
 	}
+	s.clear = clear
 	s.freeError = freeError
 	s.lookup = lookup
 	s.store = store
@@ -203,6 +218,27 @@ func New(name string, opts ...option) (*Storage, error) {
 	}
 	s.schema = C.new_schema(C.CString(name), attrs[0], attrs[1])
 	return &s, nil
+}
+
+// Clear deletes the stored data, if any exists.
+func (s *Storage) Clear(context.Context) error {
+	// the first nil terminates the list and libsecret ignores any extras
+	attrs := []*C.char{nil, nil, nil, nil}
+	for i, attr := range s.attributes {
+		name := C.CString(attr.name)
+		defer C.free(unsafe.Pointer(name))
+		value := C.CString(attr.value)
+		defer C.free(unsafe.Pointer(value))
+		attrs[i*2] = name
+		attrs[(i*2)+1] = value
+	}
+	var e *C.gError
+	_ = C.clear(s.clear, s.schema, nil, &e, attrs[0], attrs[1], attrs[2], attrs[3])
+	if e != nil {
+		defer C.free_g_error(s.freeError, e)
+		return fmt.Errorf("couldn't clear secret data: %q", C.GoString(e.message))
+	}
+	return nil
 }
 
 // Read returns data stored according to the secret schema or, if no such data exists, a nil slice and nil error.
@@ -274,3 +310,5 @@ func (s *Storage) symbol(name string) (unsafe.Pointer, error) {
 	}
 	return fp, nil
 }
+
+var _ Accessor = (*Storage)(nil)
