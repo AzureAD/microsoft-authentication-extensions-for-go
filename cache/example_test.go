@@ -4,8 +4,8 @@
 package cache_test
 
 import (
-	"github.com/AzureAD/microsoft-authentication-extensions-for-go/cache/accessor"
 	"github.com/AzureAD/microsoft-authentication-extensions-for-go/cache"
+	"github.com/AzureAD/microsoft-authentication-extensions-for-go/cache/accessor"
 	"github.com/AzureAD/microsoft-authentication-library-for-go/apps/public"
 )
 
