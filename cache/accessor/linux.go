@@ -115,8 +115,8 @@ type attribute struct {
 
 type option func(*Storage) error
 
-// WithAttribute adds an attribute to the secret schema representing the cache.
-// Storage supports up to 2 attributes.
+// WithAttribute adds an attribute to the schema representing the cache.
+// [Storage] supports up to 2 attributes.
 func WithAttribute(name, value string) option {
 	return func(s *Storage) error {
 		if len(s.attributes) == 2 {
@@ -127,7 +127,7 @@ func WithAttribute(name, value string) option {
 	}
 }
 
-// WithLabel sets a label on the secret schema representing the cache. The default label is "MSALCache".
+// WithLabel sets a label on the schema representing the cache. The default label is "MSALCache".
 func WithLabel(label string) option {
 	return func(s *Storage) error {
 		s.label = label
@@ -135,9 +135,9 @@ func WithLabel(label string) option {
 	}
 }
 
-// Storage uses libsecret to store data by a DBus Secret Service such as GNOME Keyring or KDE Wallet. The Service must
-// be unlocked before Storage can read or write data to it. Unlocking typically requires user interaction, and some
-// systems may be unable to unlock the Service in a headless environment such as an SSH session.
+// Storage uses libsecret to store data with a DBus Secret Service such as GNOME Keyring or KDE Wallet. The Service
+// must be unlocked before Storage can access it. Unlocking typically requires user interaction, and some systems may
+// be unable to unlock the Service in a headless environment such as an SSH session.
 type Storage struct {
 	// attributes are key/value pairs on the secret schema
 	attributes []attribute

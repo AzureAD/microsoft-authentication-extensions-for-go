@@ -30,7 +30,7 @@ type locker interface {
 }
 
 // Cache caches authentication data in external storage, using a file lock to coordinate
-// access to it with other processes.
+// access with other processes.
 type Cache struct {
 	// a provides read/write access to storage
 	a accessor.Accessor
@@ -47,7 +47,7 @@ type Cache struct {
 }
 
 // New is the constructor for Cache. "p" is the path to a file used to track when stored
-// data changes. Export will create this file and any directories in its path which don't
+// data changes. [Cache.Export] will create this file and any directories in its path which don't
 // already exist.
 func New(a accessor.Accessor, p string) (*Cache, error) {
 	lock, err := lock.New(p+".lockfile", retryDelay)

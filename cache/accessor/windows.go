@@ -58,7 +58,7 @@ func (s *Storage) Read(context.Context) ([]byte, error) {
 }
 
 // Write stores data in the file, creating the file if it doesn't exist.
-func (s *Storage) Write(ctx context.Context, data []byte) error {
+func (s *Storage) Write(_ context.Context, data []byte) error {
 	s.m.Lock()
 	defer s.m.Unlock()
 
