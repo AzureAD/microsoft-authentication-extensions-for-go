@@ -1,7 +1,5 @@
 # Microsoft Authentication Library (MSAL) Extensions for Go
 
-https://github.com/AzureAD/microsoft-authentication-extensions-for-dotnet/wiki/Cross-platform-Token-Cache
-
 This module contains a persistent cache for [Microsoft Authentication Library (MSAL) for Go](https://github.com/AzureAD/microsoft-authentication-library-for-go) public client applications such as CLI tools. It isn't recommended for web applications or RPC APIs, in which it can cause scaling and performance problems.
 
 The cache supports encrypted storage on Linux, macOS and Windows. The encryption facility depends on the platform:
