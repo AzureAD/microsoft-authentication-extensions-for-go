@@ -25,7 +25,7 @@ var (
 	manualTests = runtime.GOOS == "windows" || os.Getenv(msalextManualTest) != ""
 )
 
-func TestReadWriteClear(t *testing.T) {
+func TestReadWriteDelete(t *testing.T) {
 	if !manualTests {
 		t.Skipf("set %s to run this test", msalextManualTest)
 	}

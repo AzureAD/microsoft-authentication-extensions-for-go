@@ -14,7 +14,7 @@ import (
 
 var ctx = context.Background()
 
-func TestReadWriteClear(t *testing.T) {
+func TestReadWriteDelete(t *testing.T) {
 	for _, test := range []struct {
 		desc              string
 		initialData, want []byte
