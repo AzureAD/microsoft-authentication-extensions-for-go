@@ -14,57 +14,43 @@ import (
 
 var ctx = context.Background()
 
-func TestRead(t *testing.T) {
-	p := filepath.Join(t.TempDir(), t.Name())
-	a, err := New(p)
-	require.NoError(t, err)
-
-	expected := []byte("expected")
-	require.NoError(t, os.WriteFile(p, expected, 0600))
-
-	actual, err := a.Read(ctx)
-	require.NoError(t, err)
-	require.Equal(t, expected, actual)
-}
-
-func TestRoundTrip(t *testing.T) {
-	p := filepath.Join(t.TempDir(), "nonexistent", t.Name())
-	a, err := New(p)
-	require.NoError(t, err)
-
-	var expected []byte
-	for i := 0; i < 4; i++ {
-		actual, err := a.Read(ctx)
-		require.NoError(t, err)
-		require.Equal(t, expected, actual)
-
-		expected = append(expected, byte(i))
-		require.NoError(t, a.Write(ctx, expected))
-	}
-}
-
-func TestWrite(t *testing.T) {
-	p := filepath.Join(t.TempDir(), t.Name())
-	for _, create := range []bool{true, false} {
-		name := "file exists"
-		if create {
-			name = "new file"
-		}
-		t.Run(name, func(t *testing.T) {
-			if create {
-				f, err := os.OpenFile(p, os.O_CREATE|os.O_EXCL, 0600)
+func TestReadWriteDelete(t *testing.T) {
+	for _, test := range []struct {
+		desc              string
+		initialData, want []byte
+	}{
+		{desc: "Test when the file exists", initialData: []byte("data"), want: []byte("want")},
+		{desc: "Test when the file doesn't exist", want: []byte("want")},
+	} {
+		t.Run(test.desc, func(t *testing.T) {
+			p := filepath.Join(t.TempDir(), t.Name())
+			if test.initialData != nil {
+				require.NoError(t, os.MkdirAll(filepath.Dir(p), 0700))
+				f, err := os.OpenFile(p, os.O_CREATE|os.O_EXCL|os.O_RDWR, 0600)
+				require.NoError(t, err)
+				_, err = f.Write(test.initialData)
 				require.NoError(t, err)
 				require.NoError(t, f.Close())
 			}
 			a, err := New(p)
 			require.NoError(t, err)
 
-			expected := []byte("expected")
-			require.NoError(t, a.Write(ctx, expected))
+			if test.initialData != nil {
+				actual, err := a.Read(ctx)
+				require.NoError(t, err)
+				require.Equal(t, test.initialData, actual)
+			}
 
-			actual, err := os.ReadFile(p)
+			cp := make([]byte, len(test.want))
+			copy(cp, test.want)
+			err = a.Write(ctx, cp)
 			require.NoError(t, err)
-			require.Equal(t, expected, actual)
+
+			actual, err := a.Read(ctx)
+			require.NoError(t, err)
+			require.Equal(t, test.want, actual)
+
+			require.NoError(t, a.Delete(context.Background()))
 		})
 	}
 }

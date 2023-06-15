@@ -26,6 +26,11 @@ type fakeExternalCache struct {
 	readCallback, writeCallback func() error
 }
 
+func (c *fakeExternalCache) Delete(context.Context) error {
+	c.data = nil
+	return nil
+}
+
 func (a *fakeExternalCache) Read(context.Context) ([]byte, error) {
 	var err error
 	if a.readCallback != nil {

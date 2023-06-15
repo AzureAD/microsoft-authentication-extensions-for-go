@@ -28,6 +28,17 @@ func New(p string) (*Storage, error) {
 	return &Storage{m: &sync.RWMutex{}, p: p}, nil
 }
 
+// Delete deletes the file, if it exists.
+func (s *Storage) Delete(context.Context) error {
+	s.m.Lock()
+	defer s.m.Unlock()
+	err := os.Remove(s.p)
+	if errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+	return err
+}
+
 // Read returns data from the file. If the file doesn't exist, Read returns a nil slice and error.
 func (s *Storage) Read(context.Context) ([]byte, error) {
 	s.m.RLock()
@@ -100,3 +111,5 @@ func dpapi(op operation, data []byte) (result []byte, err error) {
 	}
 	return result, err
 }
+
+var _ Accessor = (*Storage)(nil)
