@@ -28,5 +28,5 @@ func TestWithAccount(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, expected, actual)
 
-	require.NoError(t, a.Clear(ctx))
+	require.NoError(t, a.Delete(ctx))
 }

@@ -220,8 +220,8 @@ func New(name string, opts ...option) (*Storage, error) {
 	return &s, nil
 }
 
-// Clear deletes the stored data, if any exists.
-func (s *Storage) Clear(context.Context) error {
+// Delete deletes the stored data, if any exists.
+func (s *Storage) Delete(context.Context) error {
 	// the first nil terminates the list and libsecret ignores any extras
 	attrs := []*C.char{nil, nil, nil, nil}
 	for i, attr := range s.attributes {
@@ -236,7 +236,7 @@ func (s *Storage) Clear(context.Context) error {
 	_ = C.clear(s.clear, s.schema, nil, &e, attrs[0], attrs[1], attrs[2], attrs[3])
 	if e != nil {
 		defer C.free_g_error(s.freeError, e)
-		return fmt.Errorf("couldn't clear secret data: %q", C.GoString(e.message))
+		return fmt.Errorf("couldn't delete cache data: %q", C.GoString(e.message))
 	}
 	return nil
 }

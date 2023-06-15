@@ -50,7 +50,7 @@ func TestReadWriteClear(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, test.want, actual)
 
-			require.NoError(t, a.Clear(context.Background()))
+			require.NoError(t, a.Delete(context.Background()))
 		})
 	}
 }

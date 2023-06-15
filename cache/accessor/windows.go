@@ -28,8 +28,8 @@ func New(p string) (*Storage, error) {
 	return &Storage{m: &sync.RWMutex{}, p: p}, nil
 }
 
-// Clear deletes the file, if it exists.
-func (s *Storage) Clear(context.Context) error {
+// Delete deletes the file, if it exists.
+func (s *Storage) Delete(context.Context) error {
 	s.m.Lock()
 	defer s.m.Unlock()
 	err := os.Remove(s.p)

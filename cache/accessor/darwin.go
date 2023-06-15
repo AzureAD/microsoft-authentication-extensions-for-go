@@ -43,8 +43,8 @@ func New(servName string, opts ...option) (*Storage, error) {
 	return &s, nil
 }
 
-// Clear deletes the stored data, if any exists.
-func (s *Storage) Clear(context.Context) error {
+// Delete deletes the stored data, if any exists.
+func (s *Storage) Delete(context.Context) error {
 	err := keychain.DeleteGenericPasswordItem(s.service, s.account)
 	if errors.Is(err, keychain.ErrorItemNotFound) || errors.Is(err, keychain.ErrorNoSuchKeychain) {
 		return nil

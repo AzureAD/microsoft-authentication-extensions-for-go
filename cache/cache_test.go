@@ -26,7 +26,7 @@ type fakeExternalCache struct {
 	readCallback, writeCallback func() error
 }
 
-func (c *fakeExternalCache) Clear(context.Context) error {
+func (c *fakeExternalCache) Delete(context.Context) error {
 	c.data = nil
 	return nil
 }
