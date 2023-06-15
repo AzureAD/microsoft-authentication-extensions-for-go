@@ -1,7 +1,7 @@
 # Microsoft Authentication Library (MSAL) Extensions for Go
 
 This repository contains extension modules for [Microsoft Authentication Library (MSAL) for Go](https://github.com/AzureAD/microsoft-authentication-library-for-go):
-  - [github.com/AzureAD/microsoft-authentication-extensions-for-go/cache](github.com/AzureAD/microsoft-authentication-extensions-for-go/cache): cross-platform persistent caching for MSAL public clients
+  - [github.com/AzureAD/microsoft-authentication-extensions-for-go/cache](https://github.com/AzureAD/microsoft-authentication-extensions-for-go/tree/dev/cache): cross-platform persistent caching for MSAL public clients
 
 ## Contributing
 
