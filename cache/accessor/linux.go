@@ -7,6 +7,7 @@
 package accessor
 
 /*
+#cgo LDFLAGS: -ldl
 #include <dlfcn.h>
 #include <stdlib.h>
 
