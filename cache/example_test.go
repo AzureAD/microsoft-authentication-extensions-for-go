@@ -9,7 +9,7 @@ import (
 	"github.com/AzureAD/microsoft-authentication-library-for-go/apps/public"
 )
 
-// This example shows how to configure an MSAL public client to store data in a peristent, encrypted cache.
+// This example shows how to configure an MSAL public client to store data in a persistent, encrypted cache.
 func Example() {
 	// On Linux and macOS, "s" is an arbitrary name identifying the cache.
 	// On Windows, it's the path to a file in which to store cache data.
