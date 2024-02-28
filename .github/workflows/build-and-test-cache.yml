@@ -6,7 +6,7 @@ on:
     paths:
       - 'cache/**'
   push:
-    branches: [dev, main]
+    branches: [main]
     paths:
       - 'cache/**'
 
